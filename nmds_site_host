@@ -1,0 +1,84 @@
+library(vegan)
+
+# otu table
+OTUtable <-  read.table('OTU.csv', sep = ",", header = TRUE)
+
+# status table
+statusData <- read.table("host.csv", sep=",", header = TRUE)
+statusData <-  statusData[,c(1,3,5,9)]
+statusData <- statusData[statusData$Quality.score == "Good", ]
+# This is the filtered status data
+colnames(statusData)
+
+
+OTUtable <- data.frame(OTUtable[,-1], row.names = OTUtable[,1])
+# Statistics
+sum(OTUtable)
+dim(OTUtable)
+any(colSums(OTUtable)==0)
+colSums(OTUtable)
+
+
+# Plot
+plot(sort(colSums(OTUtable),decreasing=TRUE), log="y", cex=0.4)
+ 
+
+####NMDS
+
+library(vegan)
+library(ggplot2)
+OTUtable <- read.table('OTU.csv', sep = ",", header = TRUE)
+
+#merge two tables on SampleID, see the OTU last columns
+OTU <-merge(x=OTUtable,y=statusData,by="SampleID",all.x=TRUE)
+
+#make community matrix
+com = OTU[,2:9114]
+
+#turn data frame into a matrix
+m_com = as.matrix(com)
+
+set.seed(123)
+nmds = metaMDS(m_com, distance = "bray")
+nmds
+
+plot(nmds)
+
+
+#extract NMDS scores (x and y coordinates)
+data.scores = as.data.frame(scores(nmds))
+#add columns to data frame 
+data.scores$SampleID = OTU$SampleID
+data.scores$Fungal_host_status = OTU$Fungal_host_status
+data.scores$Site = OTU$Site
+
+head(data.scores)
+
+
+##https://jkzorz.github.io/2019/06/06/NMDS.html
+library(ggplot2)
+
+xx = ggplot(data.scores, aes(x = NMDS1, y = NMDS2))+
+  geom_point(size = 4, aes( shape = Fungal_host_status, colour = Site))+
+  labs(x = "NMDS1", colour = "Fungal_host_status", y = "NMDS2", shape = "Site")
+xx
+
+ggsave("NMDS.svg")
+
+
+
+##http://geoffreyzahn.com/nmds-example/
+# Site
+ggplot(data.scores, aes(x=NMDS1, y=NMDS2, col=Site)) +
+  geom_point() +
+  stat_ellipse() +
+  theme_bw() +
+  labs(title = "NMDS Plot")
+
+# Host
+ggplot(data.scores, aes(x=NMDS1, y=NMDS2, col=Fungal_host_status)) +
+  geom_point() +
+  stat_ellipse() +
+  theme_bw() +
+  labs(title = "NMDS Plot")
+
